@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<project name="picketlink-custom-handlers" default="jar" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
+
+    <echo message="${ant.project.name}"/>
+    <property file="build.properties"/>
+
+    <property name="src.dir" value="${basedir}/src"/>
+    <property name="build.dir" value="${basedir}/build"/>
+    <property name="dist.dir" value="${basedir}/dist"/>
+    <property name="jar.name" value="${ant.project.name}.jar"/>
+
+    <!-- Clean the project files -->
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+        <delete dir="${dist.dir}"/>
+    </target>
+
+    <!-- Prepare the build structure -->
+    <target name="prepare">
+        <tstamp/>
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${dist.dir}"/>
+        <mkdir dir="${basedir}/lib"/>
+        <copy todir="${build.dir}">
+            <fileset dir="${src.dir}" excludes="**/*.java,**/package.html,**/doc-files,**/doc-files/*"/>
+        </copy>
+        <mkdir dir="${build.dir}/META-INF"/>
+    </target>
+
+    <!-- The compile path includes -->
+    <target name="cp">
+        <ivy:resolve />
+        <ivy:cachepath pathid="default.classpath" />
+    </target>
+
+    <target name="compile" depends="prepare,cp">
+        <javac encoding="ISO-8859-1" srcdir="${src.dir}" destdir="${build.dir}" source="${compile.source}"
+               target="${compile.target}" debug="${compile.debug}" deprecation="${compile.deprecation}"
+               optimize="${compile.optimize}">
+            <classpath refid="default.classpath"/>
+        </javac>
+    </target>
+
+
+    <!-- create a manifest file with build user, build date and build version -->
+    <target name="manifest" depends="compile">
+
+        <tstamp>
+            <format property="build.date" pattern="yyyy-MM-dd HH:mm:ss"/>
+        </tstamp>
+        <property name="build.number" value="unknown"/>
+        <property name="build.vcs.number.1" value="unknown"/>
+        <manifest file="${build.dir}/META-INF/MANIFEST.MF">
+            <attribute name="Build-Date" value="${build.date}"/>
+            <attribute name="Build-User" value="${user.name}"/>
+            <attribute name="Build-Number" value="${build.number}"/>
+            <attribute name="Build-Revision" value="${build.vcs.number.1}"/>
+        </manifest>
+    </target>
+
+    <target name="jar" depends="compile,manifest">
+        <tstamp>
+            <format property="JARTIME" pattern="yyyy-MM-dd'T'HH:mm:ss:SSSZ" locale="en"/>
+        </tstamp>
+
+        <delete file="${build.dir}/adapter.cfg"/>
+        <jar destfile="${dist.dir}/${jar.name}" manifest="${build.dir}/META-INF/MANIFEST.MF">
+            <fileset dir="${build.dir}"/>
+        </jar>
+    </target>
+
+    <target name="install" depends="jar">
+        <ivy:publish resolver="local-maven2" pubrevision="1.0">
+            <artifacts pattern="dist/[artifact].[ext]" />
+        </ivy:publish>
+    </target>
+
+</project>
